@@ -11,7 +11,7 @@ import SwiftUI
 struct vitesse2App: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            LoginView()
         }
     }
 }
