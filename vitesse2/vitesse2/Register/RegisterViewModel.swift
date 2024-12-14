@@ -47,13 +47,18 @@ class RegisterViewModel: ObservableObject {
         
         isLoading = true
         do {
-            let response: AuthResponse = try await networkService.request(.register(
+            let _: EmptyResponse = try await networkService.request(.register(
                 email: email,
                 password: password,
                 firstName: firstName,
                 lastName: lastName
             ))
-            await networkService.setToken(response.token)
+            // Since registration was successful, we'll need to log in to get the token
+            let authResponse: AuthResponse = try await networkService.request(.login(
+                email: email,
+                password: password
+            ))
+            await networkService.setToken(authResponse.token)
             isRegistered = true
         } catch {
             handleError(error)

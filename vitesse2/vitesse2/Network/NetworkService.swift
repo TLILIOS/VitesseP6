@@ -93,6 +93,8 @@ actor NetworkService {
         }
         
         switch httpResponse.statusCode {
+        case 201 where T.self == EmptyResponse.self:
+            return EmptyResponse() as! T
         case 200...299:
             do {
                 let decoder = JSONDecoder()
@@ -181,3 +183,5 @@ actor NetworkService {
 struct ErrorResponse: Codable {
     let message: String
 }
+
+struct EmptyResponse: Codable {}
