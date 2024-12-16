@@ -1,43 +1,63 @@
 import SwiftUI
 
-struct CandidateListView: View {
+// Vue principale listant tous les candidats
+// Permet la recherche, le filtrage des favoris et l'accès aux détails
+struct CandidatesListView: View {
+    // ViewModel gérant la logique et les données
     @StateObject private var viewModel: CandidateListViewModel
+    // États pour gérer les différentes vues modales
     @State private var showingAddSheet = false
+    @State private var showingEditView = false
+    @State private var selectedCandidate: Candidate? = nil
     
     init(isAdmin: Bool) {
         _viewModel = StateObject(wrappedValue: CandidateListViewModel(isAdmin: isAdmin))
     }
     
     var body: some View {
+        NavigationView {
             VStack {
                 SearchBarView(text: $viewModel.searchText)
                 
-                CandidateList(viewModel: viewModel)
+                List(viewModel.filteredCandidates) { candidate in
+                    Button(action: {
+                        selectedCandidate = candidate
+                    }) {
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text("\(candidate.firstName) \(candidate.lastName)")
+                                    .font(.headline)
+                                Text(candidate.email)
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                            }
+                            Spacer()
+                            Image(systemName: candidate.isFavorite ? "star.fill" : "star")
+                                .foregroundColor(candidate.isFavorite ? .yellow : .gray)
+                        }
+                    }
+                }
+                .listStyle(.plain) // Simplifie l'apparence
                 
                 if viewModel.isLoading {
                     ProgressView()
                 }
             }
             .toolbar {
-                // Bouton Edit en haut à gauche
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Edit") {
-                        // Action pour le bouton Edit
-                        print("Edit tapped")
+                        showingEditView = true
                     }
                 }
                 
-                // Bouton Étoile à droite
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
-                        // Action pour le bouton Étoile
-                        print("Étoile tapped")
+                        viewModel.showOnlyFavorites.toggle()
                     }) {
                         Image(systemName: "star")
                     }
                 }
                 
-                // Bouton "+" à côté du titre
                 ToolbarItem(placement: .principal) {
                     HStack {
                         Text("Candidates")
@@ -50,26 +70,60 @@ struct CandidateListView: View {
                     }
                 }
             }
-            .sheet(isPresented: $showingAddSheet) {
+            .fullScreenCover(isPresented: $showingAddSheet) {
                 AddCandidateView(isPresented: $showingAddSheet)
+                    .interactiveDismissDisabled()
+            }
+            .onChange(of: showingAddSheet) { oldValue, newValue in
+                if !newValue {
+                    // La vue d'ajout a été fermée, rafraîchir la liste
+                    Task {
+                        await viewModel.fetchCandidates()
+                    }
+                }
+            }
+            .fullScreenCover(isPresented: $showingEditView) {
+                EditableCandidatesListView(isAdmin: viewModel.isAdmin)
+                    .interactiveDismissDisabled()
+            }
+            .onChange(of: showingEditView) { oldValue, newValue in
+                if !newValue {
+                    // La vue d'édition a été fermée, rafraîchir la liste
+                    Task {
+                        await viewModel.fetchCandidates()
+                    }
+                }
+            }
+            .fullScreenCover(item: $selectedCandidate) { candidate in
+                ProfilView(profile: candidate, isAdmin: viewModel.isAdmin)
+                    .interactiveDismissDisabled()
+                    .edgesIgnoringSafeArea(.all)
+            }
+            .onChange(of: selectedCandidate) { oldValue, newValue in
+                if newValue == nil {
+                    // Le profil a été fermé, rafraîchir la liste
+                    Task {
+                        await viewModel.fetchCandidates()
+                    }
+                }
             }
             .alert("Error", isPresented: $viewModel.showAlert) {
                 Button("OK", role: .cancel) { }
             } message: {
                 Text(viewModel.errorMessage)
             }
-            .navigationBarBackButtonHidden(true)
-        
-        .onAppear {
-            Task {
-                await viewModel.fetchCandidates()
+            .onAppear {
+                Task {
+                    await viewModel.fetchCandidates()
+                }
             }
         }
+        .navigationBarBackButtonHidden(true) // Supprime le bouton "< Back"
     }
 }
 
 struct CandidateListView_Previews: PreviewProvider {
     static var previews: some View {
-        CandidateListView(isAdmin: false)
+        CandidatesListView(isAdmin: false)
     }
 }

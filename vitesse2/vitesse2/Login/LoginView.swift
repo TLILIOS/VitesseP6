@@ -75,7 +75,7 @@ struct LoginView: View {
                 Text(viewModel.errorMessage)
             }
             .navigationDestination(isPresented: $viewModel.isAuthenticated) {
-                CandidateListView(isAdmin: viewModel.isAdmin)
+                CandidatesListView(isAdmin: viewModel.isAdmin)
             }
         }
     }

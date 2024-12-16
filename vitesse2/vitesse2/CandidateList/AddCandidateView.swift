@@ -32,24 +32,35 @@ struct AddCandidateView: View {
                         .frame(height: 100)
                 }
             }
-            .navigationTitle("New Candidate")
-            .navigationBarItems(
-                leading: Button("Cancel") {
-                    isPresented = false
-                },
-                trailing: Button("Save") {
-                    Task {
-                        if await viewModel.saveCandidate() {
-                            isPresented = false
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        isPresented = false
+                    }
+                }
+                
+                ToolbarItem(placement: .principal) {
+                    Text("New Candidate")
+                        .font(.headline)
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        Task {
+                            if await viewModel.saveCandidate() {
+                                isPresented = false
+                            }
                         }
                     }
                 }
-            )
+            }
             .alert("Error", isPresented: $viewModel.showAlert) {
                 Button("OK", role: .cancel) { }
             } message: {
                 Text(viewModel.errorMessage)
             }
         }
+        .navigationViewStyle(.stack)
     }
 }

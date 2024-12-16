@@ -91,6 +91,12 @@ class CandidateListViewModel: ObservableObject {
         isEditing = false
     }
     
+    func deleteSelectedCandidatesSync() {
+        Task {
+            await deleteSelectedCandidates()
+        }
+    }
+    
     func toggleFavorite(for candidate: Candidate) async {
         guard isAdmin else { return }
         
@@ -103,6 +109,12 @@ class CandidateListViewModel: ObservableObject {
             isLoading = false
         } catch {
             handleError(error)
+        }
+    }
+    
+    func toggleFavoriteSync(for candidate: Candidate) {
+        Task {
+            await toggleFavorite(for: candidate)
         }
     }
     

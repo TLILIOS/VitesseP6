@@ -32,7 +32,7 @@ class AddCandidateViewModel: ObservableObject {
             linkedinURL: linkedinURL.isEmpty ? nil : linkedinURL,
             firstName: firstName,
             lastName: lastName,
-            phone: phone.isEmpty ? nil : phone
+            phone: phone.isEmpty ? nil : phone, isFavorite: false
         )
         
         do {

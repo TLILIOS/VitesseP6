@@ -7,7 +7,10 @@
 
 import SwiftUI
 
+// Vue d'inscription pour les nouveaux utilisateurs
+// Gère la création de compte et la validation des données
 struct RegisterView: View {
+    // États pour les champs du formulaire
     @StateObject private var viewModel = RegisterViewModel()
     @Environment(\.dismiss) private var dismiss
     
@@ -23,22 +26,27 @@ struct RegisterView: View {
                     
                     // Champs de saisie
                     VStack(spacing: 15) {
+                        // Champ pour le prénom
                         TextField("Prénom", text: $viewModel.firstName)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .textInputAutocapitalization(.words)
                         
+                        // Champ pour le nom
                         TextField("Nom", text: $viewModel.lastName)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .textInputAutocapitalization(.words)
                         
+                        // Champ pour l'email
                         TextField("Email", text: $viewModel.email)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .textInputAutocapitalization(.never)
                             .keyboardType(.emailAddress)
                         
+                        // Champ pour le mot de passe
                         SecureField("Mot de passe", text: $viewModel.password)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                         
+                        // Champ pour la confirmation du mot de passe
                         SecureField("Confirmer le mot de passe", text: $viewModel.confirmPassword)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                     }
@@ -79,8 +87,8 @@ struct RegisterView: View {
             } message: {
                 Text(viewModel.errorMessage)
             }
-            .onChange(of: viewModel.isRegistered) { isRegistered in
-                if isRegistered {
+            .onChange(of: viewModel.isRegistered) { oldValue, newValue in
+                if newValue {
                     dismiss()
                 }
             }

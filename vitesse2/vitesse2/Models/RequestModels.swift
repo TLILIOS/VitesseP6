@@ -7,6 +7,7 @@ struct CandidateRequest: Codable {
     let firstName: String
     let lastName: String
     let phone: String?
+    let isFavorite: Bool
 }
 
 struct LoginRequest: Codable {

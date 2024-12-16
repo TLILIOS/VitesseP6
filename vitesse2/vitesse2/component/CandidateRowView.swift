@@ -46,6 +46,6 @@ struct CandidateRowView: View {
         }
     }
 }
-#Preview {
-    CandidateListView(isAdmin: true)
-}
+//#Preview {
+//    CandidatesListView(isAdmin: true)
+//}

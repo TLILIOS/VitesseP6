@@ -7,83 +7,59 @@
 
 import Foundation
 
+// ViewModel gérant la logique métier du profil candidat
 @MainActor
 class ProfileViewModel: ObservableObject {
-    // MARK: - Published properties
-    @Published var profile: UserProfile
-    @Published var editedProfile: UserProfile
+    // Propriétés publiées pour la mise à jour de l'interface
+    @Published var candidate: Candidate
+    @Published var editedCandidate: Candidate
     @Published var isEditing: Bool = false
     @Published var errorMessage: String = ""
     @Published var showAlert: Bool = false
     @Published var isLoading: Bool = false
     
-    // MARK: - Dependencies
+    // Service réseau et droits d'administration
     private let networkService = NetworkService.shared
     let isAdmin: Bool
-    private let candidateId: String
     
     // MARK: - Initialization
-    init(candidateId: String, isAdmin: Bool) {
-        self.candidateId = candidateId
+    init(candidate: Candidate, isAdmin: Bool) {
+        self.candidate = candidate
+        self.editedCandidate = candidate
         self.isAdmin = isAdmin
-        self.profile = UserProfile()
-        self.editedProfile = UserProfile()
         
-        // Charger le profil au démarrage
         Task {
-            await fetchProfile()
+            await fetchCandidate()
         }
     }
     
-    // MARK: - Profile Management
-    func fetchProfile() async {
+    // MARK: - Candidate Management
+    func fetchCandidate() async {
         isLoading = true
         do {
-            let candidate: Candidate = try await networkService.request(.candidate(id: candidateId))
-            profile = UserProfile(
-                id: candidate.id,
-                firstName: candidate.firstName,
-                lastName: candidate.lastName,
-                phone: candidate.phone ?? "",
-                email: candidate.email,
-                linkedinURL: candidate.linkedinURL,
-                note: candidate.note,
-                isFavorite: candidate.isFavorite
-            )
-            editedProfile = profile
+            let fetchedCandidate: Candidate = try await networkService.request(.candidate(id: candidate.id))
+            candidate = fetchedCandidate
+            editedCandidate = fetchedCandidate
             isLoading = false
         } catch {
             handleError(error)
         }
     }
     
-    func saveProfile() async {
+    func saveChanges() async {
         isLoading = true
         do {
             let request = CandidateRequest(
-                email: editedProfile.email,
-                note: editedProfile.note,
-                linkedinURL: editedProfile.linkedinURL,
-                firstName: editedProfile.firstName,
-                lastName: editedProfile.lastName,
-                phone: editedProfile.phone.isEmpty ? nil : editedProfile.phone
+                email: editedCandidate.email,
+                note: editedCandidate.note,
+                linkedinURL: editedCandidate.linkedinURL,
+                firstName: editedCandidate.firstName,
+                lastName: editedCandidate.lastName,
+                phone: editedCandidate.phone, isFavorite: editedCandidate.isFavorite
             )
-            
-            let updatedCandidate: Candidate = try await networkService.request(
-                .updateCandidate(id: candidateId, candidate: request)
-            )
-            
-            profile = UserProfile(
-                id: updatedCandidate.id,
-                firstName: updatedCandidate.firstName,
-                lastName: updatedCandidate.lastName,
-                phone: updatedCandidate.phone ?? "",
-                email: updatedCandidate.email,
-                linkedinURL: updatedCandidate.linkedinURL,
-                note: updatedCandidate.note,
-                isFavorite: updatedCandidate.isFavorite
-            )
-            
+            let updatedCandidate: Candidate = try await networkService.request(.updateCandidate(id: candidate.id, candidate: request))
+            candidate = updatedCandidate
+            editedCandidate = updatedCandidate
             isEditing = false
             isLoading = false
         } catch {
@@ -92,31 +68,38 @@ class ProfileViewModel: ObservableObject {
     }
     
     func toggleFavorite() async {
-        guard isAdmin else { return }
+        guard !isLoading else { return }
+        guard isAdmin else {
+            handleError(NetworkService.NetworkError.unauthorized)
+            return
+        }
         
         isLoading = true
+        
         do {
-            let updatedCandidate: Candidate = try await networkService.request(.toggleFavorite(id: candidateId))
-            profile.isFavorite = updatedCandidate.isFavorite
-            editedProfile.isFavorite = updatedCandidate.isFavorite
-            isLoading = false
+            // Mettre à jour l'état local immédiatement pour une meilleure réactivité
+            candidate.isFavorite.toggle()
+            editedCandidate.isFavorite = candidate.isFavorite
+            
+            // Utiliser l'endpoint spécifique pour les favoris
+            let response: Candidate = try await networkService.request(.toggleFavorite(id: candidate.id))
+            candidate = response
+            editedCandidate = response
         } catch {
+            // En cas d'erreur, restaurer l'état précédent
+            candidate.isFavorite.toggle()
+            editedCandidate.isFavorite = candidate.isFavorite
             handleError(error)
         }
-    }
-    
-    // MARK: - Editing
-    func startEditing() {
-        editedProfile = profile
-        isEditing = true
+        
+        isLoading = false
     }
     
     func cancelEditing() {
-        editedProfile = profile
+        editedCandidate = candidate
         isEditing = false
     }
     
-    // MARK: - Error Handling
     private func handleError(_ error: Error) {
         if let networkError = error as? NetworkService.NetworkError {
             errorMessage = networkError.message

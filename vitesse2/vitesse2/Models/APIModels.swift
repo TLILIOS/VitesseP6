@@ -1,7 +1,7 @@
 import Foundation
 
 // Modèle pour les candidats
-struct Candidate: Codable, Identifiable {
+struct Candidate: Codable, Identifiable, Hashable {
     let id: String
     var firstName: String
     var lastName: String
@@ -10,31 +10,24 @@ struct Candidate: Codable, Identifiable {
     var note: String?
     var linkedinURL: String?
     var isFavorite: Bool
-}
-
-// Modèle pour les erreurs API
-enum APIError: Error {
-    case invalidURL
-    case networkError(Error)
-    case invalidResponse
-    case decodingError
-    case unauthorized
-    case unknown
     
-    var message: String {
-        switch self {
-        case .invalidURL:
-            return "URL invalide"
-        case .networkError(let error):
-            return "Erreur réseau: \(error.localizedDescription)"
-        case .invalidResponse:
-            return "Réponse invalide du serveur"
-        case .decodingError:
-            return "Erreur lors du décodage des données"
-        case .unauthorized:
-            return "Non autorisé"
-        case .unknown:
-            return "Erreur inconnue"
-        }
+    // Propriété locale non incluse dans le codage/décodage
+    var isSelected: Bool = false
+    
+    private enum CodingKeys: String, CodingKey {
+        case id, firstName, lastName, email, phone, note, linkedinURL, isFavorite
+    }
+    
+    var fullName: String {
+        "\(firstName) \(lastName)"
+    }
+    
+    // Implementation de Hashable
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+    
+    static func == (lhs: Candidate, rhs: Candidate) -> Bool {
+        lhs.id == rhs.id
     }
 }
